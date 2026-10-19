@@ -2,7 +2,7 @@
 
 一个原生 Windows 托盘工具，查看应用网络流量、进程磁盘读写和 NVMe 状态。C++20 / Win32 / Direct2D；数据保存在本机，无需账号。
 
-[下载安装包](https://github.com/tab16360/flowcat-windows/releases/latest/download/FlowCat-Windows-x64-Setup.exe) · [更新记录](CHANGELOG.md) · [macOS 版](https://github.com/tab16360/flowcat)
+[介绍站点](https://tab16360.github.io/flowcat/windows/) · [下载安装包](https://github.com/tab16360/flowcat-windows/releases/latest/download/FlowCat-Windows-x64-Setup.exe) · [更新记录](CHANGELOG.md) · [macOS 版](https://github.com/tab16360/flowcat)
 
 ![流量喵 Windows 磁盘面板示意，使用示例数据](docs/assets/panel.svg)
 
