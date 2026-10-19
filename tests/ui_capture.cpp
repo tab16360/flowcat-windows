@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <shellapi.h>
+#include <commctrl.h>
 #include <wincodec.h>
 #include <string>
 #include <fstream>
@@ -14,5 +15,12 @@ int WINAPI wWinMain(HINSTANCE,HINSTANCE,LPWSTR,int){
   std::wstring path=dir+L"\\ui-"+std::to_wstring(page)+L".png";
   if(SUCCEEDED(factory->CreateBitmapFromHBITMAP(bitmap,nullptr,WICBitmapIgnoreAlpha,&source))&&SUCCEEDED(factory->CreateStream(&stream))&&SUCCEEDED(stream->InitializeFromFilename(path.c_str(),GENERIC_WRITE))&&SUCCEEDED(factory->CreateEncoder(GUID_ContainerFormatPng,nullptr,&encoder))&&SUCCEEDED(encoder->Initialize(stream,WICBitmapEncoderNoCache))&&SUCCEEDED(encoder->CreateNewFrame(&frame,nullptr))){frame->Initialize(nullptr);frame->SetSize(r.right-r.left,r.bottom-r.top);WICPixelFormatGUID format=GUID_WICPixelFormat32bppBGR;frame->SetPixelFormat(&format);frame->WriteSource(source,nullptr);frame->Commit();encoder->Commit();}
   if(frame)frame->Release();if(encoder)encoder->Release();if(stream)stream->Release();if(source)source->Release();SelectObject(memory,old);DeleteObject(bitmap);DeleteDC(memory);ReleaseDC(window,screen);
- }SendMessageW(window,WM_COMMAND,101,0);factory->Release();CoUninitialize();return 0;
+ }
+ // Exercise the actual ordinary-user controls and preserve the original startup preference.
+ DWORD pid=0;GetWindowThreadProcessId(window,&pid);HANDLE process=OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION,FALSE,pid),token=nullptr;TOKEN_ELEVATION elevation{};DWORD size=0;bool known=process&&OpenProcessToken(process,TOKEN_QUERY,&token)&&GetTokenInformation(token,TokenElevation,&elevation,sizeof(elevation),&size);if(token)CloseHandle(token);if(process)CloseHandle(process);
+ HWND startup=GetDlgItem(window,301);auto original=SendMessageW(startup,BM_GETCHECK,0,0);auto exists=[](){wchar_t value[32768];DWORD bytes=sizeof(value);return RegGetValueW(HKEY_CURRENT_USER,L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",L"FlowCatWindows",RRF_RT_REG_SZ,nullptr,value,&bytes)==ERROR_SUCCESS;};
+ SendMessageW(startup,BM_SETCHECK,BST_UNCHECKED,0);SendMessageW(window,WM_COMMAND,301,0);bool off=!exists();SendMessageW(startup,BM_SETCHECK,BST_CHECKED,0);SendMessageW(window,WM_COMMAND,301,0);bool on=exists();SendMessageW(startup,BM_SETCHECK,original,0);SendMessageW(window,WM_COMMAND,301,0);
+ SendMessageW(window,WM_COMMAND,101,0);SendMessageW(window,WM_COMMAND,201,0);Sleep(2300);HWND search=GetDlgItem(window,107),list=GetDlgItem(window,109);auto before=ListView_GetItemCount(list);SendMessageW(search,WM_SETTEXT,0,reinterpret_cast<LPARAM>(L"___FlowCat_no_such_process___"));bool empty=ListView_GetItemCount(list)==0;SendMessageW(search,WM_SETTEXT,0,reinterpret_cast<LPARAM>(L""));bool restored=ListView_GetItemCount(list)>0;
+ std::ofstream report(std::filesystem::path(dir)/L"ui-functional.json");report<<"{\"ordinaryGui\":"<<(known&&!elevation.TokenIsElevated?"true":"false")<<",\"startupOff\":"<<(off?"true":"false")<<",\"startupOn\":"<<(on?"true":"false")<<",\"search\":"<<(before>0&&empty&&restored?"true":"false")<<",\"beforeCount\":"<<before<<",\"empty\":"<<(empty?"true":"false")<<",\"restored\":"<<(restored?"true":"false")<<"}";
+ SendMessageW(window,WM_COMMAND,101,0);factory->Release();CoUninitialize();return 0;
 }
