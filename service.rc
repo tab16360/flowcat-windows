@@ -1,7 +1,7 @@
 #include <windows.h>
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,2,1,0
- PRODUCTVERSION 0,2,1,0
+ FILEVERSION 0,2,2,0
+ PRODUCTVERSION 0,2,2,0
  FILEFLAGSMASK 0x3fL
  FILEOS VOS_NT_WINDOWS32
  FILETYPE VFT_APP
@@ -12,7 +12,7 @@ BEGIN
   BEGIN
    VALUE "FileDescription", "FlowCat Collector Service\0"
    VALUE "ProductName", "FlowCat Windows\0"
-   VALUE "FileVersion", "0.2.1\0"
+   VALUE "FileVersion", "0.2.2\0"
   END
  END
 END

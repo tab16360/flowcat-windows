@@ -13,6 +13,14 @@ static bool date(const std::string& s){if(s.size()!=10)return false;for(size_t i
 Json Engine::request(const Json& q){
  if(q.value("protocol",0)!=1)return {{"ok",false},{"error","protocol"}};
  auto op=q.value("op",std::string("snapshot"));
+ if(op=="autostart"){
+  bool enabled=q.at("enabled").get<bool>();SC_HANDLE manager=OpenSCManagerW(nullptr,nullptr,SC_MANAGER_CONNECT);if(!manager)return {{"ok",false},{"error","service-manager"}};
+  SC_HANDLE service=OpenServiceW(manager,ServiceName,SERVICE_CHANGE_CONFIG|SERVICE_QUERY_CONFIG);if(!service){CloseServiceHandle(manager);return {{"ok",false},{"error","service-config"}};}
+  DWORD bytes=0;QueryServiceConfigW(service,nullptr,0,&bytes);std::vector<BYTE> buffer(bytes);auto config=reinterpret_cast<QUERY_SERVICE_CONFIGW*>(buffer.data());bool queried=bytes&&QueryServiceConfigW(service,config,bytes,&bytes);DWORD previous=queried?config->dwStartType:SERVICE_AUTO_START;
+  bool changed=queried&&ChangeServiceConfigW(service,SERVICE_NO_CHANGE,enabled?SERVICE_AUTO_START:SERVICE_DEMAND_START,SERVICE_NO_CHANGE,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr);
+  HKEY key=nullptr;bool saved=false;if(changed&&RegCreateKeyExW(HKEY_LOCAL_MACHINE,L"SOFTWARE\\FlowCatWindows",0,nullptr,0,KEY_SET_VALUE,nullptr,&key,nullptr)==ERROR_SUCCESS){DWORD value=enabled;saved=RegSetValueExW(key,L"StartAutomatically",0,REG_DWORD,reinterpret_cast<BYTE*>(&value),sizeof(value))==ERROR_SUCCESS;RegCloseKey(key);}
+  if(changed&&!saved)ChangeServiceConfigW(service,SERVICE_NO_CHANGE,previous,SERVICE_NO_CHANGE,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr);CloseServiceHandle(service);CloseServiceHandle(manager);return {{"ok",changed&&saved}};
+ }
  if(op=="pause"){bool paused=q.at("paused").get<bool>();collector.setPaused(paused);HKEY key;if(RegCreateKeyExW(HKEY_LOCAL_MACHINE,L"SOFTWARE\\FlowCatWindows",0,nullptr,0,KEY_SET_VALUE,nullptr,&key,nullptr)==ERROR_SUCCESS){DWORD v=paused;RegSetValueExW(key,L"Paused",0,REG_DWORD,reinterpret_cast<BYTE*>(&v),sizeof(v));RegCloseKey(key);}return {{"ok",true}};}
  if(op=="wifi"){bool enabled=q.at("enabled").get<bool>();collector.identifyNetworks=enabled;HKEY key;if(RegCreateKeyExW(HKEY_LOCAL_MACHINE,L"SOFTWARE\\FlowCatWindows",0,nullptr,0,KEY_SET_VALUE,nullptr,&key,nullptr)==ERROR_SUCCESS){DWORD v=enabled;RegSetValueExW(key,L"WifiNames",0,REG_DWORD,reinterpret_cast<BYTE*>(&v),sizeof(v));RegCloseKey(key);}return {{"ok",true}};}
  if(op=="health"){auto health=diskHealth();std::lock_guard g(mutex_);health_=std::move(health);return {{"ok",true}};}

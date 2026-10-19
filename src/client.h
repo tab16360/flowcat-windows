@@ -9,7 +9,7 @@
 namespace fc {
 class ClientModel {
  public:
- std::mutex mutex;Json snapshot;std::wstring error=L"正在连接采集服务";bool connected=false,loading=true;
+ std::mutex mutex;Json snapshot=Json::object();std::wstring error=L"正在连接采集服务";bool connected=false,loading=true;
  std::atomic<bool> visible{false};
  void start(HWND notify);void stop();void query(const std::wstring& since,const std::wstring& until,const std::wstring& network);void pause(bool value);void refreshHealth();
  std::vector<Row> rows(bool disk,int proxy=-1) const;

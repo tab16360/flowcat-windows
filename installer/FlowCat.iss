@@ -1,4 +1,4 @@
-#define AppVersion "0.2.1"
+#define AppVersion "0.2.2"
 #ifndef ServiceBinary
 #define ServiceBinary "..\build\Release\FlowCatService.exe"
 #endif
