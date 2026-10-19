@@ -11,8 +11,10 @@ class Store {
  Store(const Store&)=delete;Store& operator=(const Store&)=delete;
  bool ok() const {return db_!=nullptr && error_.empty();} std::wstring error() const{return error_;}
  bool put(const std::wstring& day,const std::wstring& network,const std::vector<Row>& rows,const Bytes& physical);
- std::vector<Row> rows(const std::wstring& since,const std::wstring& until,bool disk,int proxy=-1);
- Bytes physical(const std::wstring& since,const std::wstring& until);
+ std::vector<Row> rows(const std::wstring& since,const std::wstring& until,bool disk,int proxy=-1,const std::wstring& network=L"");
+ Bytes physical(const std::wstring& since,const std::wstring& until,const std::wstring& network=L"");
+ std::vector<std::wstring> networks();
+ std::string csvData(const std::wstring& since,const std::wstring& until,const std::wstring& network=L"");
  bool csv(const std::wstring& path,const std::wstring& since,const std::wstring& until);
  private:
  HMODULE dll_=nullptr;sqlite3* db_=nullptr;std::wstring error_;

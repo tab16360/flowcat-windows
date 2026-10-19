@@ -1,0 +1,8 @@
+#include "settings.h"
+namespace fc {
+bool preference(const wchar_t* name,bool fallback){DWORD value=0,size=sizeof(value);if(RegGetValueW(HKEY_CURRENT_USER,L"SOFTWARE\\FlowCatWindows",name,RRF_RT_REG_DWORD,nullptr,&value,&size)!=ERROR_SUCCESS)return fallback;return value!=0;}
+void setPreference(const wchar_t* name,bool value){HKEY key;if(RegCreateKeyExW(HKEY_CURRENT_USER,L"SOFTWARE\\FlowCatWindows",0,nullptr,0,KEY_SET_VALUE,nullptr,&key,nullptr)==ERROR_SUCCESS){DWORD v=value;RegSetValueExW(key,name,0,REG_DWORD,reinterpret_cast<BYTE*>(&v),sizeof(v));RegCloseKey(key);}}
+bool autoStart(){wchar_t value[32768];DWORD size=sizeof(value);return RegGetValueW(HKEY_CURRENT_USER,L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",L"FlowCatWindows",RRF_RT_REG_SZ,nullptr,value,&size)==ERROR_SUCCESS;}
+bool setAutoStart(bool value){HKEY key;if(RegCreateKeyExW(HKEY_CURRENT_USER,L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",0,nullptr,0,KEY_SET_VALUE,nullptr,&key,nullptr)!=ERROR_SUCCESS)return false;DWORD result=ERROR_SUCCESS;if(value){auto command=L"\""+executablePath()+L"\" --background";result=RegSetValueExW(key,L"FlowCatWindows",0,REG_SZ,reinterpret_cast<const BYTE*>(command.c_str()),static_cast<DWORD>((command.size()+1)*2));}else{result=RegDeleteValueW(key,L"FlowCatWindows");if(result==ERROR_FILE_NOT_FOUND)result=ERROR_SUCCESS;}RegCloseKey(key);if(result==ERROR_SUCCESS)setPreference(L"LaunchOnLogin",value);return result==ERROR_SUCCESS;}
+void initializePreferences(){if(!preference(L"Initialized",false)){setAutoStart(true);setPreference(L"AutoUpdate",true);setPreference(L"Initialized",true);}else if(preference(L"LaunchOnLogin",true))setAutoStart(true);}
+}

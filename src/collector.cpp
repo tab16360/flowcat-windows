@@ -6,6 +6,7 @@
 #include <iphlpapi.h>
 #include <netioapi.h>
 #include <wlanapi.h>
+
 #include <filesystem>
 #include <ctime>
 #include <cstring>
@@ -16,26 +17,6 @@ static const GUID disk={0x3d6fa8d4,0xfe05,0x11d0,{0x9d,0xda,0x00,0xc0,0x4f,0xd7,
 template<class T> bool property(EVENT_RECORD* r, const wchar_t* name,T& value) {
  PROPERTY_DATA_DESCRIPTOR p{}; p.PropertyName=reinterpret_cast<ULONGLONG>(name); p.ArrayIndex=ULONG_MAX;
  return TdhGetProperty(r,0,nullptr,1,&p,sizeof(T),reinterpret_cast<PBYTE>(&value))==ERROR_SUCCESS;
-}
-std::wstring dayKey(int offset) {
- std::time_t t=std::time(nullptr); std::tm tm{};localtime_s(&tm,&t);tm.tm_mday+=offset;tm.tm_hour=12;tm.tm_isdst=-1;std::mktime(&tm);
- wchar_t b[16];wcsftime(b,16,L"%Y-%m-%d",&tm);return b;
-}
-std::wstring currentNetwork() {
- HANDLE client=nullptr; DWORD version=0;
- if(WlanOpenHandle(2,nullptr,&version,&client)!=ERROR_SUCCESS)return L"全部网络";
- PWLAN_INTERFACE_INFO_LIST list=nullptr;std::wstring result=L"全部网络";
- if(WlanEnumInterfaces(client,nullptr,&list)==ERROR_SUCCESS) {
-  for(DWORD i=0;i<list->dwNumberOfItems;++i){
-   DWORD size=0;PWLAN_CONNECTION_ATTRIBUTES a=nullptr;WLAN_OPCODE_VALUE_TYPE type;
-   if(WlanQueryInterface(client,&list->InterfaceInfo[i].InterfaceGuid,wlan_intf_opcode_current_connection,nullptr,&size,reinterpret_cast<PVOID*>(&a),&type)==ERROR_SUCCESS){
-    if(a->isState==wlan_interface_state_connected){
-     auto& s=a->wlanAssociationAttributes.dot11Ssid;int n=MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,reinterpret_cast<const char*>(s.ucSSID),s.uSSIDLength,nullptr,0);
-     if(n>0){result.resize(n);MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,reinterpret_cast<const char*>(s.ucSSID),s.uSSIDLength,result.data(),n);}
-    }WlanFreeMemory(a);
-   }
-  }WlanFreeMemory(list);
- }WlanCloseHandle(client,nullptr);return result;
 }
 Collector::Collector() { physical(); refreshProcesses(); }
 Collector::~Collector() {stop();}
@@ -120,7 +101,7 @@ Bytes Collector::physical(){
 }
 Batch Collector::take(){
  if(GetTickCount64()-lastRefresh_>5000){refreshProcesses();lastRefresh_=GetTickCount64();}
- Batch b;b.network=currentNetwork();b.physical=physical();b.events=eventCount;
+ Batch b;b.network=identifyNetworks?currentNetwork():L"全部网络";b.physical=physical();b.events=eventCount;
  {std::lock_guard guard(lock_);for(auto& [key,row]:pending_)b.rows.push_back(std::move(row));pending_.clear();}
  if(paused){b.rows.clear();b.physical={};}
  if(session_){std::vector<unsigned char> p=props_;if(ControlTraceW(session_,sessionName_.c_str(),reinterpret_cast<EVENT_TRACE_PROPERTIES*>(p.data()),EVENT_TRACE_CONTROL_QUERY)==ERROR_SUCCESS)lost=reinterpret_cast<EVENT_TRACE_PROPERTIES*>(p.data())->EventsLost;}

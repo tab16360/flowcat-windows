@@ -1,11 +1,10 @@
-name: Windows preview
+# Copy into .github/workflows/windows.yml when a token with workflow scope is available.
+name: Windows build
 on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['windows/**', '.github/workflows/windows.yml']
   pull_request:
-    paths: ['windows/**', '.github/workflows/windows.yml']
 permissions:
   contents: read
 jobs:
@@ -15,11 +14,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build and check
         shell: pwsh
-        run: ./windows/build.ps1
-      - name: Package portable preview
+        run: ./build.ps1
+      - name: Package installer
         shell: pwsh
-        run: ./windows/package.ps1 -SkipBuild
+        run: ./package.ps1 -SkipBuild
       - uses: actions/upload-artifact@v4
         with:
-          name: FlowCat-Windows-x64-preview
-          path: windows/dist/*
+          name: FlowCat-Windows-x64-Setup
+          path: dist/*

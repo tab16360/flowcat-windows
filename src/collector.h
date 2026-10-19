@@ -13,7 +13,7 @@ struct Batch { std::vector<Row> rows; Bytes physical; std::wstring network; uint
 struct Collector {
  Collector(); ~Collector();
  bool start(); void stop(); Batch take(); void setPaused(bool value);
- std::atomic<bool> paused{false}; std::atomic<ULONG> error{0},lost{0}; std::atomic<uint64_t> eventCount{0},parseErrors{0},unattributedDisk{0};
+ std::atomic<bool> paused{false},identifyNetworks{true}; std::atomic<ULONG> error{0},lost{0}; std::atomic<uint64_t> eventCount{0},parseErrors{0},unattributedDisk{0};
  private:
  TRACEHANDLE session_=0, consumer_=INVALID_PROCESSTRACE_HANDLE;
  std::wstring sessionName_; std::vector<unsigned char> props_;

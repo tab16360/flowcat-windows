@@ -12,11 +12,12 @@ int wmain(){
   check(s.put(L"2026-10-18",L"wifi B",{a},{4000,5000,0,0}),"same app on second network remains separate");
   check(s.put(L"2026-10-19",L"wifi A",{a},{6000,7000,0,0}),"second day saves independently");
   auto rows=s.rows(L"2026-10-18",L"2026-10-18",false,0);check(rows.size()==1&&rows[0].bytes.down==20&&rows[0].bytes.write==80,"date and proxy filters preserve app totals");
+  check(s.rows(L"2026-10-18",L"2026-10-19",false,0,L"wifi B")[0].bytes.down==10,"SSID filter excludes other networks");
   check(s.physical(L"2026-10-18",L"2026-10-18").total(false)==12000,"physical totals never sum process proxy counters");
  }
  {
   Store reopened(dir);auto rows=reopened.rows(L"2026-10-18",L"2026-10-19",true);check(rows.size()==1&&rows[0].bytes.write==120,"history survives close and reopen");
   check(reopened.csv(dir+L"\\export.csv",L"2026-10-18",L"2026-10-19"),"CSV exports persisted daily records");
  }
- std::filesystem::remove_all(dir);puts("All 8 persistence checks passed.");
+ std::filesystem::remove_all(dir);puts("All 9 persistence checks passed.");
 }

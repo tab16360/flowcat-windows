@@ -6,9 +6,9 @@
 #include <filesystem>
 int WINAPI wWinMain(HINSTANCE,HINSTANCE,LPWSTR,int){
  int argc=0;auto argv=CommandLineToArgvW(GetCommandLineW(),&argc);if(argc<2)return 1;std::wstring dir=argv[1];bool stop=dir==L"--stop";LocalFree(argv);
- CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED);HWND window=FindWindowW(L"FlowCatPanel",nullptr);if(!window)return 2;if(stop){PostMessageW(window,WM_COMMAND,203,0);return 0;}
+ CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED);HWND window=FindWindowW(L"FlowCatWindowsPanel",nullptr);if(!window)return 2;if(stop){PostMessageW(window,WM_COMMAND,203,0);return 0;}
  IWICImagingFactory* factory=nullptr;if(FAILED(CoCreateInstance(CLSID_WICImagingFactory,nullptr,CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&factory))))return 3;
- for(int page=0;page<3;++page){SendMessageW(window,WM_COMMAND,101+page,0);SendMessageW(window,WM_COMMAND,201,0);Sleep(1800);
+ for(int page=0;page<4;++page){SendMessageW(window,WM_COMMAND,page==3?110:101+page,0);SendMessageW(window,WM_COMMAND,201,0);Sleep(1800);
   RECT r{};GetWindowRect(window,&r);HDC screen=GetDC(window),memory=CreateCompatibleDC(screen);HBITMAP bitmap=CreateCompatibleBitmap(screen,r.right-r.left,r.bottom-r.top);auto old=SelectObject(memory,bitmap);PrintWindow(window,memory,2);
   IWICBitmap* source=nullptr;IWICStream* stream=nullptr;IWICBitmapEncoder* encoder=nullptr;IWICBitmapFrameEncode* frame=nullptr;
   std::wstring path=dir+L"\\ui-"+std::to_wstring(page)+L".png";

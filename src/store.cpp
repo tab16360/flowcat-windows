@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <climits>
+#include <sstream>
 namespace fc {
 std::wstring dataDirectory(){PWSTR p=nullptr;std::wstring result;if(SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData,0,nullptr,&p))){result=std::wstring(p)+L"\\FlowCat";CoTaskMemFree(p);}return result;}
 Store::Store(const std::wstring& directory){
@@ -33,17 +34,22 @@ bool Store::put(const std::wstring& day,const std::wstring& network,const std::v
  if(good){auto* s=prepare("INSERT INTO physical VALUES(?,?,?,?) ON CONFLICT(day,network) DO UPDATE SET down=MIN(9223372036854775807,down+excluded.down),up=MIN(9223372036854775807,up+excluded.up)");if(s){text(s,1,day);text(s,2,network);bindInt_(s,3,bounded(physical.down));bindInt_(s,4,bounded(physical.up));good=done(s);}else good=false;}
  if(good)return exec("COMMIT");exec("ROLLBACK");return false;
 }
-std::vector<Row> Store::rows(const std::wstring& since,const std::wstring& until,bool disk,int proxy){
+std::vector<Row> Store::rows(const std::wstring& since,const std::wstring& until,bool disk,int proxy,const std::wstring& network){
  std::vector<Row> out;if(!ok())return out;
- auto* s=prepare("SELECT key,MAX(name),MAX(proxy),SUM(down),SUM(up),SUM(rd),SUM(wr) FROM usage WHERE day>=? AND day<=? GROUP BY key");if(!s)return out;text(s,1,since);text(s,2,until);
+ auto* s=prepare("SELECT key,MAX(name),MAX(proxy),SUM(down),SUM(up),SUM(rd),SUM(wr) FROM usage WHERE day>=? AND day<=? AND (?='' OR network=?) GROUP BY key");if(!s)return out;text(s,1,since);text(s,2,until);text(s,3,network);text(s,4,network);
  while(step_(s)==100){Row r;r.key=static_cast<const wchar_t*>(text_(s,0));r.name=static_cast<const wchar_t*>(text_(s,1));r.proxy=integer_(s,2)!=0;r.bytes={static_cast<uint64_t>(integer_(s,3)),static_cast<uint64_t>(integer_(s,4)),static_cast<uint64_t>(integer_(s,5)),static_cast<uint64_t>(integer_(s,6))};if(r.bytes.total(disk)>0 && (disk||proxy<0||r.proxy==(proxy!=0)))out.push_back(r);}
  finalize_(s);std::sort(out.begin(),out.end(),[disk](auto& a,auto& b){return disk?a.bytes.write>b.bytes.write:a.bytes.total(false)>b.bytes.total(false);});return out;
 }
-Bytes Store::physical(const std::wstring& since,const std::wstring& until){Bytes b;if(!ok())return b;auto* s=prepare("SELECT SUM(down),SUM(up) FROM physical WHERE day>=? AND day<=?");if(!s)return b;text(s,1,since);text(s,2,until);if(step_(s)==100){b.down=static_cast<uint64_t>(integer_(s,0));b.up=static_cast<uint64_t>(integer_(s,1));}finalize_(s);return b;}
+Bytes Store::physical(const std::wstring& since,const std::wstring& until,const std::wstring& network){Bytes b;if(!ok())return b;auto* s=prepare("SELECT SUM(down),SUM(up) FROM physical WHERE day>=? AND day<=? AND (?='' OR network=?)");if(!s)return b;text(s,1,since);text(s,2,until);text(s,3,network);text(s,4,network);if(step_(s)==100){b.down=static_cast<uint64_t>(integer_(s,0));b.up=static_cast<uint64_t>(integer_(s,1));}finalize_(s);return b;}
 static std::string utf8(const std::wstring& s){int n=WideCharToMultiByte(CP_UTF8,0,s.c_str(),static_cast<int>(s.size()),nullptr,0,nullptr,nullptr);std::string b(n,'\0');WideCharToMultiByte(CP_UTF8,0,s.c_str(),static_cast<int>(s.size()),b.data(),n,nullptr,nullptr);return b;}
 static std::string quote(std::wstring s){if(!s.empty()&&(s[0]==L'='||s[0]==L'+'||s[0]==L'-'||s[0]==L'@'))s=L"'"+s;std::string v=utf8(s),out="\"";for(char c:v){out+=c;if(c=='"')out+='"';}return out+'"';}
 bool Store::csv(const std::wstring& path,const std::wstring& since,const std::wstring& until){
  if(!ok())return false;auto* s=prepare("SELECT day,network,name,proxy,down,up,rd,wr FROM usage WHERE day>=? AND day<=? ORDER BY day,name");if(!s)return false;text(s,1,since);text(s,2,until);std::ofstream f(std::filesystem::path(path),std::ios::binary);f<<"\xEF\xBB\xBF"<<"date,network,process,proxy,download_bytes,upload_bytes,read_bytes,write_bytes\r\n";
  while(step_(s)==100){for(int i=0;i<8;++i){if(i)f<<',';if(i<3)f<<quote(static_cast<const wchar_t*>(text_(s,i)));else f<<integer_(s,i);}f<<"\r\n";}finalize_(s);return f.good();
 }
+}
+
+namespace fc {
+std::vector<std::wstring> Store::networks(){std::vector<std::wstring> result;if(!ok())return result;auto* s=prepare("SELECT network FROM usage UNION SELECT network FROM physical");if(s){while(step_(s)==100)result.emplace_back(static_cast<const wchar_t*>(text_(s,0)));finalize_(s);}return result;}
+std::string Store::csvData(const std::wstring& since,const std::wstring& until,const std::wstring& network){if(!ok())return {};auto* s=prepare("SELECT day,network,name,proxy,down,up,rd,wr FROM usage WHERE day>=? AND day<=? AND (?='' OR network=?) ORDER BY day,name");if(!s)return {};text(s,1,since);text(s,2,until);text(s,3,network);text(s,4,network);std::ostringstream out;out<<"\xEF\xBB\xBF"<<"date,network,process,proxy,download_bytes,upload_bytes,read_bytes,write_bytes\r\n";while(step_(s)==100){for(int i=0;i<8;++i){if(i)out<<',';if(i<3)out<<quote(static_cast<const wchar_t*>(text_(s,i)));else out<<integer_(s,i);}out<<"\r\n";if(out.tellp()>7*1024*1024)break;}finalize_(s);return out.str();}
 }

@@ -12,4 +12,6 @@ if($LASTEXITCODE){exit $LASTEXITCODE}
 & "$PSScriptRoot\build\$Configuration\FlowCatCoreTests.exe"
 if($LASTEXITCODE){exit $LASTEXITCODE}
 & "$PSScriptRoot\build\$Configuration\FlowCatStoreTests.exe"
+if($LASTEXITCODE){exit $LASTEXITCODE}
+& "$PSScriptRoot\build\$Configuration\FlowCatUpdateTests.exe"
 exit $LASTEXITCODE
