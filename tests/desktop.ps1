@@ -1,8 +1,9 @@
-param([ValidateSet('Launch','Capture','Query','WriteProbe','Stop','FullExit','StartupOff','StartupOn')][string]$Action='Launch')
+param([ValidateSet('Launch','Capture','Query','WriteProbe','Stop','FullExit','StartupOff','StartupOn','Dpi')][string]$Action='Launch')
 $ErrorActionPreference='Stop'
 $root=Split-Path $PSScriptRoot -Parent
 $exe=Join-Path $env:ProgramFiles 'FlowCat Windows\FlowCat.exe'
 $args='--show'
+if($Action -eq 'Dpi'){$exe=Join-Path $root 'build\Release\FlowCatDpiTests.exe';$args=Join-Path $root 'build\dpi-validation'}
 if($Action -eq 'Capture'){$exe=Join-Path $root 'build\Release\FlowCatUiCapture.exe';$args=Join-Path $root 'build'}
 if($Action -eq 'FullExit'){$exe=Join-Path $root 'build\Release\FlowCatUiCapture.exe';$args='--full-exit'}
 if($Action -eq 'StartupOff'){$exe=Join-Path $root 'build\Release\FlowCatUiCapture.exe';$args='--startup-off'}

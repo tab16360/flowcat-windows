@@ -2,8 +2,8 @@
 1 RT_MANIFEST "app.manifest"
 10 ICON "assets/FlowCat.ico"
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,2,2,0
- PRODUCTVERSION 0,2,2,0
+ FILEVERSION 0,2,3,0
+ PRODUCTVERSION 0,2,3,0
  FILEFLAGSMASK 0x3fL
  FILEOS VOS_NT_WINDOWS32
  FILETYPE VFT_APP
@@ -14,7 +14,7 @@ BEGIN
   BEGIN
    VALUE "FileDescription", "FlowCat Windows\0"
    VALUE "ProductName", "流量喵\0"
-   VALUE "FileVersion", "0.2.2\0"
+   VALUE "FileVersion", "0.2.3\0"
   END
  END
  BLOCK "VarFileInfo"

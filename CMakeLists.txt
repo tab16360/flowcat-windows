@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(FlowCatWindows VERSION 0.2.2 LANGUAGES CXX RC)
+project(FlowCatWindows VERSION 0.2.3 LANGUAGES CXX RC)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_definitions(UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
@@ -26,3 +26,6 @@ add_test(NAME core COMMAND FlowCatCoreTests)
 add_test(NAME persistence COMMAND FlowCatStoreTests)
 add_test(NAME update COMMAND FlowCatUpdateTests)
 add_executable(FlowCatFailService EXCLUDE_FROM_ALL tests/fail_service.cpp)
+
+add_executable(FlowCatDpiTests WIN32 tests/dpi.cpp)
+target_link_libraries(FlowCatDpiTests PRIVATE ole32 windowscodecs shell32 comctl32)
